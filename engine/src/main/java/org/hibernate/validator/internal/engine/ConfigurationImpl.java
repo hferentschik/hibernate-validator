@@ -326,8 +326,7 @@ public class ConfigurationImpl implements HibernateValidatorConfiguration, Confi
 	/**
 	 * Tries to check whether a validation.xml file exists and parses it
 	 */
-	private void parseValidationXml() {
-		if ( ignoreXmlConfiguration ) {
+	private void parseValidationXml() {		if ( ignoreXmlConfiguration ) {
 			log.ignoringXmlConfiguration();
 
 			// make sure we use the defaults in case they haven't been provided yet
