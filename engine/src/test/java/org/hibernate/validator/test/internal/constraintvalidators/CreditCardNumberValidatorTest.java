@@ -26,6 +26,7 @@ import org.testng.annotations.Test;
 import org.hibernate.validator.constraints.CreditCardNumber;
 import org.hibernate.validator.testutil.TestForIssue;
 
+import static org.hibernate.validator.testutil.ConstraintViolationAssert.assertCorrectConstraintViolationMessages;
 import static org.hibernate.validator.testutil.ConstraintViolationAssert.assertNumberOfViolations;
 import static org.hibernate.validator.testutil.ValidatorUtil.getValidator;
 
@@ -80,6 +81,15 @@ public class CreditCardNumberValidatorTest {
 		assertNumberOfViolations( constraintViolations, 0 );
 	}
 
+	@Test
+	@TestForIssue(jiraKey = "HV-881")
+	public void testCreditCardValidation() {
+		Validator validator = getValidator();
+		Set<ConstraintViolation<CreditCardHolder>> constraintViolations = validator.validate( new CreditCardHolder() );
+		assertNumberOfViolations( constraintViolations, 1 );
+		assertCorrectConstraintViolationMessages( constraintViolations, "141" );
+	}
+
 	public static class CreditCard {
 		@CreditCardNumber
 		String creditCardNumber;
@@ -95,4 +105,12 @@ public class CreditCardNumberValidatorTest {
 			this.creditCardNumberAsCharSequence = creditCardNumberAsCharSequence;
 		}
 	}
+
+	class CreditCardHolder {
+		@CreditCardNumber(message = "141")
+		public String getCreditCardNumber() {
+			return "4411111111111";
+		}
+	}
 }
+
