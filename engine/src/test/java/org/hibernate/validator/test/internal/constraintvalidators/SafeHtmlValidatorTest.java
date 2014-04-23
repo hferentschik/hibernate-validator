@@ -20,15 +20,14 @@ import java.util.Set;
 import javax.validation.ConstraintViolation;
 import javax.validation.Validator;
 
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
 import org.hibernate.validator.constraints.SafeHtml;
 import org.hibernate.validator.constraints.SafeHtml.WhiteListType;
 import org.hibernate.validator.internal.constraintvalidators.SafeHtmlValidator;
 import org.hibernate.validator.internal.util.annotationfactory.AnnotationDescriptor;
 import org.hibernate.validator.internal.util.annotationfactory.AnnotationFactory;
 import org.hibernate.validator.testutil.TestForIssue;
+import org.testng.annotations.BeforeMethod;
+import org.testng.annotations.Test;
 
 import static org.hibernate.validator.testutil.ConstraintViolationAssert.assertNumberOfViolations;
 import static org.hibernate.validator.testutil.ValidatorUtil.getValidator;
@@ -137,6 +136,44 @@ public class SafeHtmlValidatorTest {
 		descriptor.setValue( "whitelistType", WhiteListType.NONE );
 
 		assertFalse( getSafeHtmlValidator().isValid( "<td>1234qwer</td>", null ) );
+	}
+
+	@Test
+	@TestForIssue(jiraKey = "HV-873")
+	public void testValidationWithFullDocument() throws Exception {
+		descriptor.setValue( "whitelistType", WhiteListType.NONE );
+
+		String document = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\""
+				+ "\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"
+				+ "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">"
+				+ "   <head>"
+				+ "      <title>Foo</title>"
+				+ "   </head>"
+				+ "   <body>"
+				+ "      <td>1234qwer</td>"
+				+ "   </body>"
+				+ "</html>";
+
+		assertFalse( getSafeHtmlValidator().isValid( document, null ) );
+	}
+
+	@Test
+	@TestForIssue(jiraKey = "HV-873")
+	public void testValidationWithInvalidFullDocument() throws Exception {
+		descriptor.setValue( "whitelistType", WhiteListType.RELAXED );
+
+		String document = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Strict//EN\""
+				+ "\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd\">"
+				+ "<html xmlns=\"http://www.w3.org/1999/xhtml\" lang=\"en\" xml:lang=\"en\">"
+				+ "   <head>"
+				+ "      <title>Foo</title>"
+				+ "   </head>"
+				+ "   <body>"
+				+ "      <td>1234qwer</td>"
+				+ "   </body>"
+				+ "</html>";
+
+		assertTrue( getSafeHtmlValidator().isValid( document, null ) );
 	}
 
 	@Test

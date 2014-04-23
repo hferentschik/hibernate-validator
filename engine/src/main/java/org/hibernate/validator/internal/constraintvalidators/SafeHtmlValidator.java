@@ -16,18 +16,16 @@
  */
 package org.hibernate.validator.internal.constraintvalidators;
 
-import java.util.Iterator;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
+import org.hibernate.validator.constraints.SafeHtml;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.parser.Parser;
 import org.jsoup.safety.Cleaner;
 import org.jsoup.safety.Whitelist;
-
-import org.hibernate.validator.constraints.SafeHtml;
 
 /**
  * Validate that the string does not contain malicious code.
@@ -72,23 +70,26 @@ public class SafeHtmlValidator implements ConstraintValidator<SafeHtml, CharSequ
 			return true;
 		}
 
-		return new Cleaner( whitelist ).isValid( getFragmentAsDocument( value ) );
+		return new Cleaner( whitelist ).isValid( getAsDocument( value ) );
 	}
 
 	/**
-	 * Returns a document whose {@code <body>} element contains the given HTML fragment.
+	 * Returns a document whose {@code <body>} element contains the given HTML. Needed in the ase where
+	 * only a HTML fragment is validated.
 	 */
-	private Document getFragmentAsDocument(CharSequence value) {
-		// using the XML parser ensures that all elements in the input are retained, also if they actually are not allowed at the given
-		// location; E.g. a <td> element isn't allowed directly within the <body> element, so it would be used by the default HTML parser.
-		// we need to retain it though to apply the given white list properly; See HV-873
-		Document fragment = Jsoup.parse( value.toString(), "", Parser.xmlParser() );
-		Document document = Document.createShell( "" );
-
-		// add the fragment's nodes to the body of resulting document
-		Iterator<Element> nodes = fragment.children().iterator();
-		while ( nodes.hasNext() ) {
-			document.body().appendChild( nodes.next() );
+	private Document getAsDocument(CharSequence value) {
+		// using the XML parser ensures that all elements in the input are retained, also if they actually are not
+		// allowed at the given location; E.g. a <td> element isn't allowed directly within the <body> element,
+		// so it would be used by the default HTML parser.
+		// We need to retain it though to apply the given white list properly; See HV-873
+		Document document = Jsoup.parse( value.toString(), "", Parser.xmlParser() );
+		if ( document.body() == null ) {
+			Document shell = Document.createShell( "" );
+			// add the fragment's nodes to the body of resulting document
+			for ( Element element : document.children() ) {
+				shell.body().appendChild( element );
+			}
+			document = shell;
 		}
 
 		return document;
