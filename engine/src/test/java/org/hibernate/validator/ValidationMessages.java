@@ -50,6 +50,7 @@ public class ValidationMessages extends ResourceBundle {
 	private void addTestPropertiesToBundle() {
 		messages.put( "replace.in.default.bundle1", "{replace.in.default.bundle2}" );
 		messages.put( "replace.in.default.bundle2", "foobar" );
+		messages.put( "ConstraintValidatorContextTest.testCustomMessageInterpolationForMapValiation", "Failure in map validation" );
 	}
 
 	private void loadDefaultValidationProperties() throws IOException {

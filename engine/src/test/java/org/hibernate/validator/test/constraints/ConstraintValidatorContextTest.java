@@ -45,6 +45,7 @@ import org.hibernate.validator.testutil.ValidatorUtil;
 import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import static org.hibernate.validator.internal.util.CollectionHelper.asSet;
 import static org.hibernate.validator.internal.util.CollectionHelper.newHashMap;
+import static org.hibernate.validator.testutil.ConstraintViolationAssert.assertCorrectConstraintViolationMessages;
 import static org.hibernate.validator.testutil.ConstraintViolationAssert.assertCorrectPropertyPaths;
 import static org.hibernate.validator.testutil.ConstraintViolationAssert.assertNumberOfViolations;
 import static org.hibernate.validator.testutil.ConstraintViolationAssert.assertThat;
@@ -204,6 +205,16 @@ public class ConstraintValidatorContextTest {
 		}
 	}
 
+	@Test
+	@TestForIssue(jiraKey = "HV-986")
+	public void testCustomMessageInterpolationForMapValiation() {
+		Set<ConstraintViolation<Foobar>> constraintViolations = validator.validate( new Foobar() );
+
+		assertNumberOfViolations( constraintViolations, 1 );
+		assertCorrectPropertyPaths( constraintViolations, "bar[test-key].name" );
+		assertCorrectConstraintViolationMessages( constraintViolations, "Failure in map validation" );
+	}
+
 	@MyClassLevelValidation
 	private static class MyObject {
 		@NotNull
@@ -243,6 +254,17 @@ public class ConstraintValidatorContextTest {
 		private String bar;
 	}
 
+	private static class Foobar {
+
+		@MapConstraint
+		private Map<String, java.lang.Object> bar = new HashMap<String, java.lang.Object>();
+
+		public Foobar() {
+			bar.put( "test-key", new java.lang.Object() );
+		}
+	}
+
+
 	private static class User {
 		@PropertyLevelValidationAddingBeanAndPropertyNodes
 		public Address getAddress() {
@@ -279,9 +301,9 @@ public class ConstraintValidatorContextTest {
 	public @interface MyClassLevelValidation {
 		String message() default "failed";
 
-		Class<?>[] groups() default { };
+		Class<?>[] groups() default {};
 
-		Class<? extends Payload>[] payload() default { };
+		Class<? extends Payload>[] payload() default {};
 
 		public static class Validator implements ConstraintValidator<MyClassLevelValidation, MyObject> {
 			@Override
@@ -311,9 +333,9 @@ public class ConstraintValidatorContextTest {
 	public @interface ClassLevelValidationAddingPropertyNodes {
 		String message() default "failed";
 
-		Class<?>[] groups() default { };
+		Class<?>[] groups() default {};
 
-		Class<? extends Payload>[] payload() default { };
+		Class<? extends Payload>[] payload() default {};
 
 		public static class Validator implements ConstraintValidator<ClassLevelValidationAddingPropertyNodes, Foo> {
 			@Override
@@ -368,9 +390,9 @@ public class ConstraintValidatorContextTest {
 	public @interface PropertyLevelValidationAddingBeanAndPropertyNodes {
 		String message() default "failed";
 
-		Class<?>[] groups() default { };
+		Class<?>[] groups() default {};
 
-		Class<? extends Payload>[] payload() default { };
+		Class<? extends Payload>[] payload() default {};
 
 		public static class Validator
 				implements ConstraintValidator<PropertyLevelValidationAddingBeanAndPropertyNodes, Address> {
@@ -434,9 +456,9 @@ public class ConstraintValidatorContextTest {
 	public @interface CrossParameterValidationAddingParameterBeanAndPropertyNodes {
 		String message() default "failed";
 
-		Class<?>[] groups() default { };
+		Class<?>[] groups() default {};
 
-		Class<? extends Payload>[] payload() default { };
+		Class<? extends Payload>[] payload() default {};
 
 		@SupportedValidationTarget(ValidationTarget.PARAMETERS)
 		public static class Validator
@@ -475,9 +497,9 @@ public class ConstraintValidatorContextTest {
 	public @interface FieldLevelValidationAddingParameterNode {
 		String message() default "failed";
 
-		Class<?>[] groups() default { };
+		Class<?>[] groups() default {};
 
-		Class<? extends Payload>[] payload() default { };
+		Class<? extends Payload>[] payload() default {};
 
 		public static class Validator
 				implements ConstraintValidator<FieldLevelValidationAddingParameterNode, String> {
@@ -505,5 +527,32 @@ public class ConstraintValidatorContextTest {
 			return "param";
 		}
 
+	}
+
+	@Retention(RUNTIME)
+	@Constraint(validatedBy = MapConstraint.Validator.class)
+	public @interface MapConstraint {
+		String message() default "failed";
+
+		Class<?>[] groups() default {};
+
+		Class<? extends Payload>[] payload() default {};
+
+		public static class Validator implements ConstraintValidator<MapConstraint, Map<String, java.lang.Object>> {
+			@Override
+			public void initialize(MapConstraint constraintAnnotation) {
+			}
+
+			@Override
+			public boolean isValid(Map<String, java.lang.Object> value, ConstraintValidatorContext context) {
+				context.disableDefaultConstraintViolation();
+				context.buildConstraintViolationWithTemplate( "{ConstraintValidatorContextTest.testCustomMessageInterpolationForMapValiation}" )
+						.addPropertyNode( null ).inIterable().atKey( "test-key" )
+						.addPropertyNode( "name" )
+						.addConstraintViolation();
+
+				return false;
+			}
+		}
 	}
 }
