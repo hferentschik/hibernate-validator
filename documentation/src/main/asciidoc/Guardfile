@@ -1,0 +1,10 @@
+Bundler.require(:default)
+
+guard 'shell' do
+  watch(/.*\.asciidoc$/) {|m|
+    html = Asciidoctor.convert_file(m[0], :header_footer => true)
+    File.open("../../../target/asciidoc-html/#{m[0].gsub!(/asciidoc/, 'html') }", 'w') { |file| file.write("#{html.render}") }
+  }
+end
+
+
